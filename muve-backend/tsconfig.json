@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    /* Saída */
+    // "rootDir": "./src",
+    // "outDir": "./dist",
+
+    /* Ambiente Node */
+    "target": "es2016",                  /* Alvo ES */
+    "module": "commonjs",                /* Módulos CommonJS (Node) */
+    "moduleResolution": "node",          /* Resolve módulos como Node */
+    "esModuleInterop": true,             /* Permite import default de libs JS */
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,                      /* Regras estritas */
+    "skipLibCheck": true                 /* Pula checagem de libs */
+  }
+}

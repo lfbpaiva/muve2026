@@ -1,0 +1,54 @@
+// --- gerador do client ---
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --- datasource do banco ---
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- enums e models ---
+enum TipoPessoa {
+  PF
+  PJ
+}
+
+enum TipoConta {
+  ARTISTA
+  CONTRATANTE
+}
+
+
+model Usuario {
+  id           String     @id @default(uuid())
+  nome         String
+  email        String     @unique
+  senha        String
+  telefone     String?
+  tipoPessoa   TipoPessoa @default(PF)
+
+  tipoConta    TipoConta  @default(ARTISTA) // << NOVO
+
+  cpf          String?    @unique
+  cnpj         String?    @unique
+  razaoSocial  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("usuarios")
+}
+
+model Evento {
+  id        Int      @id @default(autoincrement())
+  titulo    String
+  descricao String?
+  local     String
+  data      String?
+  hora      String
+  categoria String?
+  createdAt DateTime  @default(now())
+
+  @@map("evento") // <-- forçará a tabela minúscula
+}
