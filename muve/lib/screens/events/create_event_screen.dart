@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../constants/music_genres.dart';
 import '../../services/auth_service.dart';
 import '../../services/event_service.dart';
 import '../../models/event_model.dart';
 import '../../theme/app_theme.dart';
-
-const _generos = [
-  'Sertanejo', 'Rock', 'Pagode', 'MPB', 'Jazz', 'Eletrônica',
-  'Indie', 'Pop', 'Funk', 'Gospel', 'Forró', 'Bossa Nova',
-  'Samba', 'Blues', 'House', 'Reggae',
-];
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -28,7 +23,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   DateTime _data = DateTime.now().add(const Duration(days: 7));
   TimeOfDay _horario = const TimeOfDay(hour: 20, minute: 0);
   bool _contratando = true;
-  int _vagas = 3;
   bool _loading = false;
   final Set<String> _generosSelecionados = {};
 
@@ -93,7 +87,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
 
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 600));
 
     final user = AuthService.currentUser!;
     final dataComHora = DateTime(
@@ -104,10 +97,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       _horario.minute,
     );
     final event = EventModel(
-      id: 'evt_${DateTime.now().millisecondsSinceEpoch}',
+      id: '',
       titulo: titulo,
-      descricao:
-          _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      descricao: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
       local: local,
       cidade: cidade,
       estado: estado,
@@ -122,19 +114,26 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       criadoEm: DateTime.now(),
     );
 
-    EventService.add(event);
+    try {
+      await EventService.create(event, userId: user.uid);
 
-    if (!mounted) return;
-    setState(() => _loading = false);
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Evento publicado com sucesso!'),
-        backgroundColor: AppTheme.statusGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+      if (!mounted) return;
+      setState(() => _loading = false);
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Evento publicado com sucesso!'),
+          backgroundColor: AppTheme.statusGreen,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _showError(e.toString());
+    }
   }
 
   void _showError(String msg) {
@@ -157,8 +156,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           children: [
             // App bar
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 children: [
                   IconButton(
@@ -184,8 +182,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppTheme.primary),
+                                strokeWidth: 2, color: AppTheme.primary),
                           )
                         : const Text(
                             'Publicar',
@@ -206,11 +203,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Upload de foto (área dashed)
-                    _UploadPhotoArea(),
-                    const SizedBox(height: 20),
-
-                    // Nome do evento
                     _label('Nome do evento *'),
                     const SizedBox(height: 6),
                     TextField(
@@ -276,8 +268,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             onTap: _pickDate,
                             child: Container(
                               height: 50,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
                               decoration: BoxDecoration(
                                 color: AppTheme.inputBg,
                                 borderRadius: BorderRadius.circular(10),
@@ -290,8 +282,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                   Text(
                                     '${_data.day.toString().padLeft(2, '0')}/${_data.month.toString().padLeft(2, '0')}/${_data.year}',
                                     style: const TextStyle(
-                                        color: AppTheme.textDark,
-                                        fontSize: 14),
+                                        color: AppTheme.textDark, fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -304,8 +295,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             onTap: _pickTime,
                             child: Container(
                               height: 50,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
                               decoration: BoxDecoration(
                                 color: AppTheme.inputBg,
                                 borderRadius: BorderRadius.circular(10),
@@ -318,8 +309,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                   Text(
                                     '${_horario.hour.toString().padLeft(2, '0')}:${_horario.minute.toString().padLeft(2, '0')}',
                                     style: const TextStyle(
-                                        color: AppTheme.textDark,
-                                        fontSize: 14),
+                                        color: AppTheme.textDark, fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -351,7 +341,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _generos.map((g) {
+                      children: musicGenres.map((g) {
                         final sel = _generosSelecionados.contains(g);
                         return GestureDetector(
                           onTap: () => setState(() {
@@ -366,7 +356,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 7),
                             decoration: BoxDecoration(
-                              color: sel ? AppTheme.primary : Colors.transparent,
+                              color:
+                                  sel ? AppTheme.primary : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: sel
@@ -380,9 +371,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               style: TextStyle(
                                 color: sel ? Colors.white : AppTheme.textMedium,
                                 fontSize: 13,
-                                fontWeight: sel
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
+                                fontWeight:
+                                    sel ? FontWeight.w600 : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -452,8 +442,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                 child: Container(
                                   width: 22,
                                   height: 22,
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 2),
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 2),
                                   decoration: const BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
@@ -466,68 +456,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                     ),
 
-                    // Stepper de vagas
-                    if (_contratando) ...[
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x08000000),
-                              blurRadius: 6,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Vagas disponíveis',
-                                style: TextStyle(
-                                  color: AppTheme.textDark,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            // Stepper
-                            Row(
-                              children: [
-                                _StepperButton(
-                                  icon: Icons.remove,
-                                  onTap: () =>
-                                      setState(() {
-                                        if (_vagas > 1) _vagas--;
-                                      }),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                  child: Text(
-                                    '$_vagas',
-                                    style: const TextStyle(
-                                      color: AppTheme.textDark,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                _StepperButton(
-                                  icon: Icons.add,
-                                  onTap: () =>
-                                      setState(() => _vagas++),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 20),
 
                     // Descrição
@@ -561,7 +489,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _loading ? null : _publicar,
                         icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('+ Criar Evento'),
+                        label: const Text('Criar evento'),
                         style: AppTheme.primaryButtonStyle,
                       ),
                     ),
@@ -584,79 +512,4 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           fontWeight: FontWeight.w700,
         ),
       );
-}
-
-class _UploadPhotoArea extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 140,
-      decoration: BoxDecoration(
-        color: AppTheme.inputBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFD1D5DB),
-          width: 1.5,
-          strokeAlign: BorderSide.strokeAlignInside,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.camera_alt_rounded,
-              color: AppTheme.primary,
-              size: 22,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Adicionar foto do evento',
-            style: TextStyle(
-              color: AppTheme.textDark,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Toque para fazer upload',
-            style: TextStyle(color: AppTheme.textLight, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepperButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _StepperButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: AppTheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: AppTheme.primary.withValues(alpha: 0.3), width: 1),
-        ),
-        child: Icon(icon, color: AppTheme.primary, size: 18),
-      ),
-    );
-  }
 }

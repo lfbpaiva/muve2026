@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../constants/music_genres.dart';
 import '../../models/user_model.dart';
 import '../../services/user_service.dart';
 import '../../routes.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/artist_card.dart';
-
-const _generosFiltro = [
-  'Todos', 'Sertanejo', 'Rock', 'Pagode', 'MPB', 'Jazz',
-  'Eletrônica', 'Indie', 'Pop', 'Funk', 'Gospel', 'Forró',
-];
+import '../../widgets/muve_feedback.dart';
 
 class ArtistsScreen extends StatefulWidget {
   const ArtistsScreen({super.key});
@@ -22,6 +19,9 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
   String _genero = 'Todos';
   bool _apenasDisponiveis = false;
   List<UserModel> _artists = [];
+  bool _loading = false;
+  String? _error;
+  int _requestSerial = 0;
 
   @override
   void initState() {
@@ -37,21 +37,76 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
     super.dispose();
   }
 
-  void _load() {
+  Future<void> _load() async {
+    final requestId = ++_requestSerial;
+    final query = _searchCtrl.text.trim();
+
     setState(() {
-      _artists = UserService.search(
-        query: _searchCtrl.text.trim().isEmpty
-            ? null
-            : _searchCtrl.text.trim(),
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final artists = await UserService.search(
+        query: query.isEmpty ? null : query,
         genero: _genero == 'Todos' ? null : _genero,
         disponivelApenas: _apenasDisponiveis ? true : null,
       );
-      _artists.sort((a, b) {
-        if (a.perfilPago && !b.perfilPago) return -1;
-        if (!a.perfilPago && b.perfilPago) return 1;
-        return a.nome.compareTo(b.nome);
+
+      if (!mounted || requestId != _requestSerial) return;
+      setState(() {
+        _artists = artists;
+        _loading = false;
       });
-    });
+    } catch (e) {
+      if (!mounted || requestId != _requestSerial) return;
+      setState(() {
+        _artists = [];
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  Widget _buildArtistsBody() {
+    if (_loading) {
+      return const MuveLoadingState(
+        label: 'Carregando artistas...',
+      );
+    }
+
+    if (_error != null) {
+      return MuveErrorState(
+        title: 'Não foi possível carregar os artistas',
+        message: _error!,
+        onRetry: _load,
+      );
+    }
+
+    if (_artists.isEmpty) {
+      return const MuveEmptyState(
+        icon: Icons.person_search_rounded,
+        title: 'Nenhum artista encontrado',
+        message: 'Ajuste os filtros para encontrar outros profissionais.',
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+      itemCount: _artists.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, i) {
+        final artist = _artists[i];
+        return ArtistCard(
+          artist: artist,
+          onTap: () => Navigator.pushNamed(
+            context,
+            Routes.artistDetail,
+            arguments: artist,
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -75,28 +130,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                 _load();
               },
             ),
-            Expanded(
-              child: _artists.isEmpty
-                  ? const _EmptyState()
-                  : ListView.separated(
-                      padding:
-                          const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                      itemCount: _artists.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 10),
-                      itemBuilder: (context, i) {
-                        final artist = _artists[i];
-                        return ArtistCard(
-                          artist: artist,
-                          onTap: () => Navigator.pushNamed(
-                            context,
-                            Routes.artistDetail,
-                            arguments: artist,
-                          ),
-                        );
-                      },
-                    ),
-            ),
+            Expanded(child: _buildArtistsBody()),
           ],
         ),
       ),
@@ -165,10 +199,10 @@ class _FilterBar extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _generosFiltro.length,
+            itemCount: musicGenreFilters.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, i) {
-              final g = _generosFiltro[i];
+              final g = musicGenreFilters[i];
               final active = g == genero;
               return GestureDetector(
                 onTap: () => onGeneroChanged(g),
@@ -179,9 +213,8 @@ class _FilterBar extends StatelessWidget {
                     color: active ? AppTheme.primary : Colors.transparent,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: active
-                          ? AppTheme.primary
-                          : const Color(0xFFD1D5DB),
+                      color:
+                          active ? AppTheme.primary : const Color(0xFFD1D5DB),
                       width: 1.5,
                     ),
                   ),
@@ -258,48 +291,6 @@ class _FilterBar extends StatelessWidget {
         ),
         const SizedBox(height: 8),
       ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.person_search_rounded,
-              size: 36,
-              color: AppTheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Nenhum artista encontrado',
-            style: TextStyle(
-              color: AppTheme.textDark,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Tente outros filtros',
-            style: TextStyle(color: AppTheme.textMedium, fontSize: 13),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../constants/music_genres.dart';
 import '../../routes.dart';
 import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
-
-const _allGenres = [
-  'Sertanejo', 'Rock', 'Pagode', 'MPB', 'Eletrônica',
-  'Indie', 'Jazz', 'Funk', 'Gospel', 'Pop', 'Hip-Hop', 'Forró',
-  'Bossa Nova', 'Samba', 'Blues', 'House', 'Reggae',
-];
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,6 +16,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificacoesAtivas = true;
   late Set<String> _generosSelecionados;
   late TextEditingController _cacheCtrl;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -35,15 +32,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  void _saveAndPop() {
+  Future<void> _saveAndPop() async {
     final user = AuthService.currentUser!;
-    final updated = user.copyWith(
-      generos: _generosSelecionados.toList(),
-      faixaCache:
-          _cacheCtrl.text.trim().isEmpty ? null : _cacheCtrl.text.trim(),
-    );
-    AuthService.updateCurrentUser(updated);
-    Navigator.pop(context);
+    setState(() => _saving = true);
+
+    try {
+      final updated = await UserService.updateMe(
+        userId: user.uid,
+        data: {
+          'generos': _generosSelecionados.toList(),
+          'faixaCache':
+              _cacheCtrl.text.trim().isEmpty ? null : _cacheCtrl.text.trim(),
+        },
+      );
+
+      AuthService.updateCurrentUser(updated);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppTheme.statusRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -57,12 +73,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             // App bar dark
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: _saveAndPop,
+                    onPressed: _saving ? null : _saveAndPop,
                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                         color: Colors.white, size: 20),
                   ),
@@ -77,7 +92,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  TextButton(
+                    onPressed: _saving ? null : _saveAndPop,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Salvar',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
                 ],
               ),
             ),
@@ -106,8 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // PREFERÊNCIAS
                     _sectionLabel('PREFERÊNCIAS'),
                     _DarkCard(children: [
-                      _rowChevron(
-                          Icons.palette_outlined, 'Tema', 'Escuro'),
+                      _rowChevron(Icons.palette_outlined, 'Tema', 'Escuro'),
                       if (user.isArtista) ...[
                         _divider(),
                         _rowInput(
@@ -132,7 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: _allGenres.map((g) {
+                          children: musicGenres.map((g) {
                             final sel = _generosSelecionados.contains(g);
                             return GestureDetector(
                               onTap: () => setState(() {
@@ -195,8 +227,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: Text(
                               'Versão do App',
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 14),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 14),
                             ),
                           ),
                           Text(
@@ -260,8 +292,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
 
-  Widget _divider() => const Divider(
-      color: Color(0xFF374151), height: 16, thickness: 1);
+  Widget _divider() =>
+      const Divider(color: Color(0xFF374151), height: 16, thickness: 1);
 
   Widget _rowToggle({
     required IconData icon,
@@ -275,8 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(width: 12),
           Expanded(
               child: Text(label,
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 14))),
+                  style: const TextStyle(color: Colors.white, fontSize: 14))),
           GestureDetector(
             onTap: () => onChanged(!value),
             child: AnimatedContainer(
@@ -289,8 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),
-                alignment:
-                    value ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
                 child: Container(
                   width: 20,
                   height: 20,
@@ -312,12 +342,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(width: 12),
           Expanded(
               child: Text(label,
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 14))),
+                  style: const TextStyle(color: Colors.white, fontSize: 14))),
           if (value.isNotEmpty)
             Text(value,
-                style: const TextStyle(
-                    color: Color(0xFF6B7280), fontSize: 14)),
+                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 14)),
           const SizedBox(width: 4),
           const Icon(Icons.chevron_right_rounded,
               color: Color(0xFF4B5563), size: 18),
@@ -337,12 +365,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: TextField(
               controller: ctrl,
-              style:
-                  const TextStyle(color: Colors.white, fontSize: 14),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(
-                    color: Color(0xFF4B5563), fontSize: 14),
+                hintStyle:
+                    const TextStyle(color: Color(0xFF4B5563), fontSize: 14),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 isDense: true,
@@ -360,8 +387,7 @@ class _DarkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xFF1F2937),
         borderRadius: BorderRadius.circular(12),

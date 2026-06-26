@@ -90,6 +90,7 @@ class UserModel {
 
   Map<String, dynamic> toMap() => {
         'uid': uid,
+        'id': uid,
         'nome': nome,
         'email': email,
         'telefone': telefone,
@@ -106,21 +107,35 @@ class UserModel {
         'criadoEm': criadoEm.toIso8601String(),
       };
 
-  factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
-        uid: map['uid'] as String,
-        nome: map['nome'] as String,
-        email: map['email'] as String,
-        telefone: map['telefone'] as String?,
-        fotoPerfil: map['fotoPerfil'] as String?,
-        bio: map['bio'] as String?,
-        cidade: map['cidade'] as String? ?? '',
-        estado: map['estado'] as String? ?? '',
-        papeis: List<String>.from(map['papeis'] ?? []),
-        generos: List<String>.from(map['generos'] ?? []),
-        redesSociais: Map<String, String>.from(map['redesSociais'] ?? {}),
-        faixaCache: map['faixaCache'] as String?,
-        disponivelContratacao: map['disponivelContratacao'] as bool? ?? false,
-        perfilPago: map['perfilPago'] as bool? ?? false,
-        criadoEm: DateTime.parse(map['criadoEm'] as String),
-      );
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    final tipoConta = map['tipoConta'] as String?;
+    final papeis = map['papeis'] != null
+        ? List<String>.from(map['papeis'])
+        : [
+            if (tipoConta != null) tipoConta,
+          ];
+
+    return UserModel(
+      uid: (map['uid'] ?? map['id'] ?? '') as String,
+      nome: map['nome'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      telefone: map['telefone'] as String?,
+      cpf: map['cpf'] as String?,
+      cnpj: map['cnpj'] as String?,
+      fotoPerfil: map['fotoPerfil'] as String?,
+      bio: map['bio'] as String?,
+      cidade: map['cidade'] as String? ?? '',
+      estado: map['estado'] as String? ?? '',
+      papeis: papeis,
+      generos: List<String>.from(map['generos'] ?? []),
+      redesSociais: Map<String, String>.from(map['redesSociais'] ?? {}),
+      faixaCache: map['faixaCache'] as String?,
+      disponivelContratacao: map['disponivelContratacao'] as bool? ?? false,
+      perfilPago: map['perfilPago'] as bool? ?? false,
+      criadoEm: DateTime.tryParse(
+            (map['criadoEm'] ?? map['createdAt'] ?? '').toString(),
+          ) ??
+          DateTime.now(),
+    );
+  }
 }

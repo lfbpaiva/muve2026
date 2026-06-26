@@ -30,8 +30,7 @@ class Routes {
           return ArtistDetailScreen(artist: artist);
         },
         chat: (context) {
-          final room =
-              ModalRoute.of(context)!.settings.arguments as ChatRoom;
+          final room = ModalRoute.of(context)!.settings.arguments as ChatRoom;
           return ChatScreen(room: room);
         },
       };

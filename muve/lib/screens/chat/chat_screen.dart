@@ -84,8 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         final isMe = msg.remetenteId == _myUid;
                         final showDate = i == 0 ||
                             !_sameDay(
-                                _messages[i - 1].enviadoEm,
-                                msg.enviadoEm);
+                                _messages[i - 1].enviadoEm, msg.enviadoEm);
                         return Column(
                           children: [
                             if (showDate) _DateDivider(msg.enviadoEm),
@@ -189,12 +188,9 @@ class _MessageBubble extends StatelessWidget {
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.72,
               ),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe
-                    ? AppTheme.primary
-                    : Colors.white,
+                color: isMe ? AppTheme.primary : Colors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
@@ -212,9 +208,8 @@ class _MessageBubble extends StatelessWidget {
                       ],
               ),
               child: Column(
-                crossAxisAlignment: isMe
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
                   Text(
                     message.texto,
@@ -271,8 +266,7 @@ class _DateDivider extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               label,
-              style: const TextStyle(
-                  color: AppTheme.textLight, fontSize: 12),
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 12),
             ),
           ),
           const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
@@ -308,19 +302,17 @@ class _InputBar extends StatelessWidget {
               ),
               child: TextField(
                 controller: controller,
-                style: const TextStyle(
-                    color: AppTheme.textDark, fontSize: 14),
+                style: const TextStyle(color: AppTheme.textDark, fontSize: 14),
                 maxLines: 4,
                 minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
                 onSubmitted: (_) => onSend(),
                 decoration: const InputDecoration(
                   hintText: 'Mensagem...',
-                  hintStyle: TextStyle(
-                      color: AppTheme.textLight, fontSize: 14),
+                  hintStyle: TextStyle(color: AppTheme.textLight, fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
             ),
@@ -335,8 +327,8 @@ class _InputBar extends StatelessWidget {
                 color: AppTheme.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.send_rounded,
-                  color: Colors.white, size: 20),
+              child:
+                  const Icon(Icons.send_rounded, color: Colors.white, size: 20),
             ),
           ),
         ],

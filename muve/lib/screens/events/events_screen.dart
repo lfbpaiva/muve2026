@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import '../../constants/music_genres.dart';
+import '../../models/event_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/event_service.dart';
-import '../../models/event_model.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/event_card.dart';
+import '../../widgets/muve_feedback.dart';
 import 'create_event_screen.dart';
-
-const _generosFiltro = [
-  'Todos', 'Sertanejo', 'Rock', 'Pagode', 'MPB', 'Jazz',
-  'Eletrônica', 'Indie', 'Pop', 'Funk', 'Gospel', 'Forró',
-];
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -23,6 +21,8 @@ class _EventsScreenState extends State<EventsScreen> {
   String _generoSelecionado = 'Todos';
   bool _apenasContratando = false;
   List<EventModel> _events = [];
+  bool _loading = false;
+  String? _error;
 
   @override
   void initState() {
@@ -30,14 +30,30 @@ class _EventsScreenState extends State<EventsScreen> {
     _load();
   }
 
-  void _load() {
+  Future<void> _load() async {
     setState(() {
-      _events = EventService.search(
-        genero:
-            _generoSelecionado == 'Todos' ? null : _generoSelecionado,
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final events = await EventService.search(
+        genero: _generoSelecionado == 'Todos' ? null : _generoSelecionado,
         contratandoApenas: _apenasContratando ? true : null,
       );
-    });
+      if (!mounted) return;
+      setState(() {
+        _events = events;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _events = [];
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
   }
 
   @override
@@ -56,9 +72,10 @@ class _EventsScreenState extends State<EventsScreen> {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const CreateEventScreen()),
+                          builder: (_) => const CreateEventScreen(),
+                        ),
                       );
-                      _load();
+                      await _load();
                     }
                   : null,
             ),
@@ -74,30 +91,51 @@ class _EventsScreenState extends State<EventsScreen> {
                 _load();
               },
             ),
-            Expanded(
-              child: _events.isEmpty
-                  ? const _EmptyState()
-                  : RefreshIndicator(
-                      onRefresh: () async => _load(),
-                      color: AppTheme.primary,
-                      backgroundColor: Colors.white,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                        itemCount: _events.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
-                        itemBuilder: (context, i) {
-                          final event = _events[i];
-                          return EventCard(
-                            event: event,
-                            onTap: () => _showEventDetail(context, event),
-                          );
-                        },
-                      ),
-                    ),
-            ),
+            Expanded(child: _buildEventsContent()),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEventsContent() {
+    if (_loading) {
+      return const MuveLoadingState(
+        label: 'Carregando eventos...',
+      );
+    }
+
+    if (_error != null) {
+      return MuveErrorState(
+        title: 'Não foi possível carregar os eventos',
+        message: _error!,
+        onRetry: _load,
+      );
+    }
+
+    if (_events.isEmpty) {
+      return const MuveEmptyState(
+        icon: Icons.event_busy_rounded,
+        title: 'Nenhum evento encontrado',
+        message: 'Tente outros filtros ou publique uma nova oportunidade.',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppTheme.primary,
+      backgroundColor: Colors.white,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+        itemCount: _events.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 14),
+        itemBuilder: (context, i) {
+          final event = _events[i];
+          return EventCard(
+            event: event,
+            onTap: () => _showEventDetail(context, event),
+          );
+        },
       ),
     );
   }
@@ -122,11 +160,11 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),
       child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Eventos',
                   style: TextStyle(
                     color: AppTheme.textDark,
@@ -134,10 +172,9 @@ class _Header extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const Text(
+                Text(
                   'Encontre ou publique shows',
-                  style: TextStyle(
-                      color: AppTheme.textMedium, fontSize: 13),
+                  style: TextStyle(color: AppTheme.textMedium, fontSize: 13),
                 ),
               ],
             ),
@@ -150,12 +187,15 @@ class _Header extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 textStyle: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
                 elevation: 0,
               ),
             ),
@@ -187,13 +227,13 @@ class _FilterBar extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _generosFiltro.length,
+            itemCount: musicGenreFilters.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, i) {
-              final g = _generosFiltro[i];
-              final active = g == generoSelecionado;
+              final genero = musicGenreFilters[i];
+              final active = genero == generoSelecionado;
               return GestureDetector(
-                onTap: () => onGeneroChanged(g),
+                onTap: () => onGeneroChanged(genero),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -201,15 +241,14 @@ class _FilterBar extends StatelessWidget {
                     color: active ? AppTheme.primary : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: active
-                          ? AppTheme.primary
-                          : const Color(0xFFD1D5DB),
+                      color:
+                          active ? AppTheme.primary : const Color(0xFFD1D5DB),
                       width: 1.5,
                     ),
                   ),
                   child: Center(
                     child: Text(
-                      g,
+                      genero,
                       style: TextStyle(
                         color: active ? Colors.white : AppTheme.textMedium,
                         fontSize: 13,
@@ -232,8 +271,8 @@ class _FilterBar extends StatelessWidget {
                 onTap: () => onContratandoChanged(!apenasContratando),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: apenasContratando
                         ? AppTheme.statusGreen.withValues(alpha: 0.1)
@@ -282,57 +321,62 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.event_busy_rounded,
-              size: 36,
-              color: AppTheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Nenhum evento encontrado',
-            style: TextStyle(
-              color: AppTheme.textDark,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Tente outros filtros',
-            style: TextStyle(color: AppTheme.textMedium, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Bottom Sheet de detalhe — tema dark (Tela 7 do spec)
-class _EventDetailSheet extends StatelessWidget {
+class _EventDetailSheet extends StatefulWidget {
   final EventModel event;
   const _EventDetailSheet({required this.event});
 
   @override
+  State<_EventDetailSheet> createState() => _EventDetailSheetState();
+}
+
+class _EventDetailSheetState extends State<_EventDetailSheet> {
+  bool _applying = false;
+
+  Future<void> _apply() async {
+    final user = AuthService.currentUser;
+    if (user == null || !user.isArtista) {
+      _showSnack(
+          'Faça login como artista para se inscrever.', AppTheme.statusRed);
+      return;
+    }
+
+    setState(() => _applying = true);
+    final result = await EventService.applyToEvent(
+      eventId: widget.event.id,
+      artistId: user.uid,
+    );
+
+    if (!mounted) return;
+    setState(() => _applying = false);
+
+    if (result.success) {
+      Navigator.pop(context);
+      _showSnack(
+        'Candidatura enviada! O contratante receberá sua solicitação.',
+        AppTheme.statusGreen,
+      );
+    } else {
+      _showSnack(
+          result.error ?? 'Erro ao enviar candidatura', AppTheme.statusRed);
+    }
+  }
+
+  void _showSnack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat("EEEE, dd 'de' MMMM 'de' yyyy", 'pt_BR')
-        .format(event.data);
+    final event = widget.event;
+    final dateStr =
+        DateFormat("EEEE, dd 'de' MMMM 'de' yyyy", 'pt_BR').format(event.data);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.78,
@@ -360,12 +404,15 @@ class _EventDetailSheet extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 children: [
                   if (event.emDestaque)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
                       child: Row(
-                        children: const [
-                          Icon(Icons.star_rounded,
-                              color: AppTheme.gold, size: 14),
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            color: AppTheme.gold,
+                            size: 14,
+                          ),
                           SizedBox(width: 6),
                           Text(
                             'EVENTO EM DESTAQUE',
@@ -379,29 +426,33 @@ class _EventDetailSheet extends StatelessWidget {
                         ],
                       ),
                     ),
-
-                  // Chip de gênero
                   if (event.generos.isNotEmpty)
                     Wrap(
                       spacing: 8,
                       children: event.generos
-                          .map((g) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary,
-                                  borderRadius: BorderRadius.circular(20),
+                          .map(
+                            (genero) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                genero,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                child: Text(g,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600)),
-                              ))
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                   const SizedBox(height: 14),
-
                   Text(
                     event.titulo,
                     style: const TextStyle(
@@ -414,17 +465,19 @@ class _EventDetailSheet extends StatelessWidget {
                   Text(
                     'Por ${event.criadorNome}',
                     style: const TextStyle(
-                        color: Color(0xFF9CA3AF), fontSize: 14),
+                      color: Color(0xFF9CA3AF),
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 20),
-
                   _DarkDetailRow(
-                      icon: Icons.calendar_today_rounded, text: dateStr),
+                    icon: Icons.calendar_today_rounded,
+                    text: dateStr,
+                  ),
                   const SizedBox(height: 10),
                   _DarkDetailRow(
                     icon: Icons.location_on_rounded,
-                    text:
-                        '${event.local}\n${event.cidade}, ${event.estado}',
+                    text: _eventLocation(event),
                   ),
                   if (event.cacheEstimado != null) ...[
                     const SizedBox(height: 10),
@@ -434,8 +487,8 @@ class _EventDetailSheet extends StatelessWidget {
                       color: AppTheme.statusGreen,
                     ),
                   ],
-
-                  if (event.descricao != null) ...[
+                  if (event.descricao != null &&
+                      event.descricao!.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     const Divider(color: Color(0xFF374151)),
                     const SizedBox(height: 16),
@@ -457,7 +510,6 @@ class _EventDetailSheet extends StatelessWidget {
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 28),
                   if (event.contratando &&
                       AuthService.currentUser != null &&
@@ -465,24 +517,25 @@ class _EventDetailSheet extends StatelessWidget {
                     SizedBox(
                       height: 52,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text(
-                                  '✅ Candidatura enviada! O contratante receberá sua notificação.'),
-                              backgroundColor: AppTheme.statusGreen,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.send_rounded, size: 18),
-                        label: const Text(
-                          'Aplicar para este Evento',
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w700),
+                        onPressed: _applying ? null : _apply,
+                        icon: _applying
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded, size: 18),
+                        label: Text(
+                          _applying
+                              ? 'Enviando candidatura...'
+                              : 'Candidatar-se ao evento',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         style: AppTheme.primaryButtonStyle,
                       ),
@@ -494,6 +547,16 @@ class _EventDetailSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _eventLocation(EventModel event) {
+    final parts = [
+      event.local,
+      if (event.cidade.isNotEmpty || event.estado.isNotEmpty)
+        '${event.cidade}${event.estado.isNotEmpty ? '/${event.estado}' : ''}',
+    ].where((part) => part.trim().isNotEmpty).toList();
+
+    return parts.isEmpty ? 'Local não informado' : parts.join('\n');
   }
 }
 
@@ -509,8 +572,7 @@ class _DarkDetailRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16,
-            color: color ?? const Color(0xFF6B7280)),
+        Icon(icon, size: 16, color: color ?? const Color(0xFF6B7280)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../routes.dart';
+import '../../models/event_application_model.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/event_service.dart';
+import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/muve_feedback.dart';
 import '../../widgets/muve_avatar.dart';
 import 'edit_profile_screen.dart';
 
@@ -13,6 +19,43 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  List<EventApplicationModel> _applications = [];
+  bool _applicationsLoading = false;
+  String? _applicationsError;
+  bool _updatingAvailability = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadApplications();
+  }
+
+  Future<void> _loadApplications() async {
+    final user = AuthService.currentUser;
+    if (user == null || !user.isArtista) return;
+
+    setState(() {
+      _applicationsLoading = true;
+      _applicationsError = null;
+    });
+
+    try {
+      final applications = await EventService.getMyApplications(user.uid);
+      if (!mounted) return;
+      setState(() {
+        _applications = applications;
+        _applicationsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _applications = [];
+        _applicationsLoading = false;
+        _applicationsError = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
   Future<void> _openEdit() async {
     await Navigator.push(
       context,
@@ -24,6 +67,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _openSettings() async {
     await Navigator.pushNamed(context, Routes.settings);
     setState(() {});
+  }
+
+  Widget _eventosInscritosCard() {
+    return _ProfileCard(
+      title: 'Eventos inscritos',
+      child: _buildApplicationsContent(),
+    );
+  }
+
+  Widget _buildApplicationsContent() {
+    if (_applicationsLoading) {
+      return const MuveLoadingState(
+        height: 88,
+        label: 'Atualizando inscrições...',
+      );
+    }
+
+    if (_applicationsError != null) {
+      return MuveErrorState(
+        title: 'Não foi possível carregar inscrições',
+        message: _applicationsError!,
+        onRetry: _loadApplications,
+        height: 220,
+      );
+    }
+
+    if (_applications.isEmpty) {
+      return const MuveEmptyState(
+        icon: Icons.event_available_rounded,
+        title: 'Nenhuma inscrição ainda',
+        message: 'Quando você se candidatar a eventos, eles aparecerão aqui.',
+        height: 210,
+      );
+    }
+
+    return Column(
+      children: _applications
+          .map(
+            (application) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ApplicationTile(application: application),
+            ),
+          )
+          .toList(),
+    );
   }
 
   @override
@@ -49,8 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Header: título + engrenagem (→ Settings)
             SliverToBoxAdapter(
               child: Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(20, 20, 12, 0),
+                padding: const EdgeInsets.fromLTRB(20, 20, 12, 0),
                 child: Row(
                   children: [
                     const Text(
@@ -79,8 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Área do perfil: avatar + info + botão editar (estilo Twitter)
             SliverToBoxAdapter(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
@@ -92,15 +178,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppTheme.primary
-                                  .withValues(alpha: 0.3),
+                              color: AppTheme.primary.withValues(alpha: 0.3),
                               width: 3,
                             ),
                           ),
                           child: MuveAvatar(
-                              name: user.nome,
-                              radius: 44,
-                              showBorder: false),
+                              name: user.nome, radius: 44, showBorder: false),
                         ),
                         Positioned(
                           bottom: 0,
@@ -128,8 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppTheme.gold,
-                                borderRadius:
-                                    BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Text(
                                 'PRO',
@@ -164,8 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           '${user.cidade}, ${user.estado}',
                           style: const TextStyle(
-                              color: AppTheme.textMedium,
-                              fontSize: 14),
+                              color: AppTheme.textMedium, fontSize: 14),
                         ),
                       ],
                     ),
@@ -174,9 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Papéis
                     Wrap(
                       spacing: 6,
-                      children: user.papeis
-                          .map((p) => _PapelChip(p))
-                          .toList(),
+                      children: user.papeis.map((p) => _PapelChip(p)).toList(),
                     ),
                     const SizedBox(height: 14),
 
@@ -194,8 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 8),
                         textStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600),
+                            fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -206,19 +284,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // Cards de informação
             SliverPadding(
-              padding:
-                  const EdgeInsets.fromLTRB(20, 0, 20, 100),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // Disponibilidade
                   if (user.isArtista) ...[
                     _disponibilidadeCard(user),
                     const SizedBox(height: 14),
+                    _eventosInscritosCard(),
+                    const SizedBox(height: 14),
                   ],
 
                   // Bio
-                  if (user.bio != null &&
-                      user.bio!.isNotEmpty) ...[
+                  if (user.bio != null && user.bio!.isNotEmpty) ...[
                     _ProfileCard(
                       title: 'Sobre mim',
                       child: Text(
@@ -234,15 +312,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
 
                   // Estilos musicais
-                  if (user.isArtista &&
-                      user.generos.isNotEmpty) ...[
+                  if (user.isArtista && user.generos.isNotEmpty) ...[
                     _ProfileCard(
                       title: 'Estilos Musicais',
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children:
-                            user.generos.asMap().entries.map((e) {
+                        children: user.generos.asMap().entries.map((e) {
                           final isFirst = e.key == 0;
                           return Container(
                             padding: const EdgeInsets.symmetric(
@@ -251,8 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: isFirst
                                   ? AppTheme.primary
                                   : Colors.transparent,
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: isFirst
                                     ? AppTheme.primary
@@ -278,8 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
 
                   // Cachê
-                  if (user.isArtista &&
-                      user.faixaCache != null) ...[
+                  if (user.isArtista && user.faixaCache != null) ...[
                     _ProfileCard(
                       title: 'Cachê',
                       child: Row(
@@ -306,11 +380,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _ProfileCard(
                       title: 'Meus Links',
                       child: Column(
-                        children:
-                            user.redesSociais.entries.map((e) {
+                        children: user.redesSociais.entries.map((e) {
                           return Padding(
-                            padding:
-                                const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.only(bottom: 10),
                             child: _PlatformLink(
                               platform: e.key,
                               url: e.value,
@@ -330,17 +402,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _disponibilidadeCard(user) {
+  Widget _disponibilidadeCard(UserModel user) {
     return GestureDetector(
-      onTap: () {
-        final updated = user.copyWith(
-            disponivelContratacao: !user.disponivelContratacao);
-        AuthService.updateCurrentUser(updated);
-        setState(() {});
-      },
+      onTap: _updatingAvailability ? null : () => _toggleAvailability(user),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -384,37 +450,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            // Toggle visual
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 44,
-              height: 24,
-              decoration: BoxDecoration(
-                color: user.disponivelContratacao
-                    ? AppTheme.primary
-                    : const Color(0xFFD1D5DB),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: AnimatedAlign(
+            if (_updatingAvailability)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: AppTheme.primary,
+                  strokeWidth: 2,
+                ),
+              )
+            else
+              AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                alignment: user.disponivelContratacao
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+                width: 44,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: user.disponivelContratacao
+                      ? AppTheme.primary
+                      : const Color(0xFFD1D5DB),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: user.disponivelContratacao
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _toggleAvailability(UserModel user) async {
+    setState(() => _updatingAvailability = true);
+
+    try {
+      final updated = await UserService.updateMe(
+        userId: user.uid,
+        data: {
+          'disponivelContratacao': !user.disponivelContratacao,
+        },
+      );
+      AuthService.updateCurrentUser(updated);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppTheme.statusRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingAvailability = false);
+      }
+    }
   }
 }
 
@@ -429,16 +531,119 @@ class _PapelChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: AppTheme.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
       ),
       child: Text(
         papel == 'ARTISTA' ? 'Artista / Músico' : 'Contratante',
         style: const TextStyle(
-            color: AppTheme.primary,
-            fontSize: 12,
-            fontWeight: FontWeight.w600),
+            color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600),
       ),
+    );
+  }
+}
+
+class _ApplicationTile extends StatelessWidget {
+  final EventApplicationModel application;
+
+  const _ApplicationTile({required this.application});
+
+  Color get _statusColor {
+    switch (application.status) {
+      case 'ACCEPTED':
+        return AppTheme.statusGreen;
+      case 'REJECTED':
+      case 'CANCELED':
+        return AppTheme.statusRed;
+      case 'PENDING':
+      default:
+        return AppTheme.gold;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final event = application.event;
+    final date = event.date == null
+        ? null
+        : DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(event.date!);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                event.title,
+                style: const TextStyle(
+                  color: AppTheme.textDark,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                application.statusLabel,
+                style: TextStyle(
+                  color: _statusColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (date != null) ...[
+          const SizedBox(height: 6),
+          _ApplicationMetaRow(
+            icon: Icons.calendar_today_rounded,
+            text: date,
+          ),
+        ],
+        if (event.location != null && event.location!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          _ApplicationMetaRow(
+            icon: Icons.location_on_rounded,
+            text: event.location!,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ApplicationMetaRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _ApplicationMetaRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 13, color: AppTheme.textLight),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: AppTheme.textMedium,
+              fontSize: 12,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -478,8 +683,7 @@ class _PlatformLink extends StatelessWidget {
   final String platform;
   final String url;
 
-  const _PlatformLink(
-      {required this.platform, required this.url});
+  const _PlatformLink({required this.platform, required this.url});
 
   IconData get _icon {
     switch (platform.toLowerCase()) {
@@ -544,8 +748,8 @@ class _PlatformLink extends StatelessWidget {
               ),
               Text(
                 url,
-                style: const TextStyle(
-                    color: AppTheme.textMedium, fontSize: 11),
+                style:
+                    const TextStyle(color: AppTheme.textMedium, fontSize: 11),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

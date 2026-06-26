@@ -114,32 +114,8 @@ class ArtistDetailScreen extends StatelessWidget {
                 children: [
                   // Status disponibilidade
                   _StatusRow(artist: artist),
-                  const SizedBox(height: 16),
-
-                  // Avaliação fictícia
-                  Row(
-                    children: [
-                      ...List.generate(
-                          5,
-                          (_) => const Icon(Icons.star_rounded,
-                              color: AppTheme.gold, size: 16)),
-                      const SizedBox(width: 6),
-                      const Text(
-                        '5.0',
-                        style: TextStyle(
-                          color: AppTheme.textDark,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        '(47 avaliações)',
-                        style: TextStyle(
-                            color: AppTheme.textMedium, fontSize: 13),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 12),
+                  _HiringInfoCard(artist: artist),
                   const SizedBox(height: 20),
 
                   // Gêneros musicais
@@ -155,7 +131,8 @@ class ArtistDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 5),
                           decoration: BoxDecoration(
-                            color: isFirst ? AppTheme.primary : Colors.transparent,
+                            color:
+                                isFirst ? AppTheme.primary : Colors.transparent,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isFirst
@@ -167,7 +144,8 @@ class ArtistDetailScreen extends StatelessWidget {
                           child: Text(
                             e.value,
                             style: TextStyle(
-                              color: isFirst ? Colors.white : AppTheme.textMedium,
+                              color:
+                                  isFirst ? Colors.white : AppTheme.textMedium,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -246,44 +224,6 @@ class ArtistDetailScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                   ],
 
-                  // Tabela de detalhes (Tela 9 — Candidatura Recebida)
-                  if (!isSelf && me != null && me.isContratante) ...[
-                    const _SectionTitle('Detalhes da Candidatura'),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x08000000),
-                            blurRadius: 6,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          _DetailRow(
-                              label: 'Equipamento próprio',
-                              value: 'Sim',
-                              valueColor: AppTheme.statusGreen),
-                          const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                          _DetailRow(
-                              label: 'Disponibilidade',
-                              value: 'Confirmada',
-                              valueColor: AppTheme.statusGreen),
-                          const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                          _DetailRow(
-                              label: 'Cachê solicitado',
-                              value: artist.faixaCache ?? '—',
-                              valueColor: AppTheme.statusGreen),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
                   // Redes sociais
                   if (artist.redesSociais.isNotEmpty) ...[
                     const _SectionTitle('Redes e portfólio'),
@@ -300,10 +240,8 @@ class ArtistDetailScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton.icon(
-                        onPressed: () =>
-                            _openChat(context, me, artist),
-                        icon: const Icon(Icons.chat_bubble_rounded,
-                            size: 18),
+                        onPressed: () => _openChat(context, me, artist),
+                        icon: const Icon(Icons.chat_bubble_rounded, size: 18),
                         label: const Text('Enviar mensagem'),
                         style: AppTheme.primaryButtonStyle,
                       ),
@@ -372,6 +310,55 @@ class _StatusRow extends StatelessWidget {
   }
 }
 
+class _HiringInfoCard extends StatelessWidget {
+  final UserModel artist;
+
+  const _HiringInfoCard({required this.artist});
+
+  @override
+  Widget build(BuildContext context) {
+    final genres =
+        artist.generos.isEmpty ? 'Não informado' : artist.generos.join(', ');
+    final location = [
+      if (artist.cidade.isNotEmpty) artist.cidade,
+      if (artist.estado.isNotEmpty) artist.estado,
+    ].join(artist.cidade.isNotEmpty && artist.estado.isNotEmpty ? ', ' : '');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 6,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _DetailRow(
+            label: 'Localização',
+            value: location.isEmpty ? 'Não informada' : location,
+          ),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          _DetailRow(
+            label: 'Estilos',
+            value: genres,
+          ),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          _DetailRow(
+            label: 'Cachê',
+            value: artist.faixaCache ?? 'A combinar',
+            valueColor: AppTheme.statusGreen,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   final String text;
   const _SectionTitle(this.text);
@@ -405,21 +392,30 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.textMedium,
-              fontSize: 13,
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppTheme.textMedium,
+                fontSize: 13,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColor ?? AppTheme.textDark,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+          const SizedBox(width: 16),
+          Flexible(
+            flex: 2,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: valueColor ?? AppTheme.textDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -466,8 +462,7 @@ class _SocialLinks extends StatelessWidget {
     }
   }
 
-  String _labelFor(String key) =>
-      key[0].toUpperCase() + key.substring(1);
+  String _labelFor(String key) => key[0].toUpperCase() + key.substring(1);
 
   @override
   Widget build(BuildContext context) {
@@ -490,8 +485,7 @@ class _SocialLinks extends StatelessWidget {
             );
           },
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),

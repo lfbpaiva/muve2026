@@ -1,0 +1,1 @@
+ALTER TYPE "public"."TipoConta" ADD VALUE IF NOT EXISTS 'ADMIN';

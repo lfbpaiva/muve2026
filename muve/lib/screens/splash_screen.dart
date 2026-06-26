@@ -35,8 +35,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigate() {
     if (!mounted) return;
-    final route =
-        AuthService.isLoggedIn ? Routes.main : Routes.login;
+    final route = AuthService.isLoggedIn ? Routes.main : Routes.login;
     Navigator.pushReplacementNamed(context, route);
   }
 

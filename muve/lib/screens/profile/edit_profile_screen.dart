@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/muve_avatar.dart';
 
@@ -58,7 +59,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     setState(() => _saving = true);
-    await Future.delayed(const Duration(milliseconds: 600));
 
     final redesSociais = <String, String>{};
     for (final k in _redesKeys) {
@@ -66,21 +66,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (v.isNotEmpty) redesSociais[k] = v;
     }
 
-    final updated = AuthService.currentUser!.copyWith(
-      nome: nome,
-      bio: _bioCtrl.text.trim().isEmpty ? null : _bioCtrl.text.trim(),
-      cidade: _cidadeCtrl.text.trim(),
-      estado: _estadoCtrl.text.trim(),
-      telefone: _telefoneCtrl.text.trim().isEmpty
-          ? null
-          : _telefoneCtrl.text.trim(),
-      redesSociais: redesSociais,
-    );
+    try {
+      final updated = await UserService.updateMe(
+        userId: AuthService.currentUser!.uid,
+        data: {
+          'nome': nome,
+          'bio': _bioCtrl.text.trim().isEmpty ? null : _bioCtrl.text.trim(),
+          'cidade': _cidadeCtrl.text.trim(),
+          'estado': _estadoCtrl.text.trim(),
+          'telefone': _telefoneCtrl.text.trim().isEmpty
+              ? null
+              : _telefoneCtrl.text.trim(),
+          'redesSociais': redesSociais,
+        },
+      );
 
-    AuthService.updateCurrentUser(updated);
-    if (!mounted) return;
-    setState(() => _saving = false);
-    Navigator.pop(context);
+      AuthService.updateCurrentUser(updated);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _showError(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   void _showError(String msg) {
@@ -170,12 +178,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppTheme.primary.withValues(alpha: 0.3),
+                                  color:
+                                      AppTheme.primary.withValues(alpha: 0.3),
                                   width: 3,
                                 ),
                               ),
                               child: MuveAvatar(
-                                  name: user.nome, radius: 48, showBorder: false),
+                                  name: user.nome,
+                                  radius: 48,
+                                  showBorder: false),
                             ),
                             Positioned(
                               bottom: 0,
@@ -247,7 +258,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                              width: 1, height: 20, color: const Color(0xFFE5E7EB)),
+                              width: 1,
+                              height: 20,
+                              color: const Color(0xFFE5E7EB)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
@@ -349,12 +362,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               controller: ctrl,
               keyboardType: type,
               maxLines: maxLines,
-              style:
-                  const TextStyle(color: AppTheme.textDark, fontSize: 14),
+              style: const TextStyle(color: AppTheme.textDark, fontSize: 14),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(
-                    color: AppTheme.textLight, fontSize: 14),
+                hintStyle:
+                    const TextStyle(color: AppTheme.textLight, fontSize: 14),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 isDense: true,

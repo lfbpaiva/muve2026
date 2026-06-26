@@ -1,25 +1,46 @@
 {
-    // Use o IntelliSense para saber mais sobre os atributos possíveis.
-    // Focalizar para exibir as descrições dos atributos existentes.
-    // Para obter mais informações, acesse: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "muve",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "muve (profile mode)",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "muve (release mode)",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "release"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MUVE Web (Chrome 8080)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--web-hostname",
+        "127.0.0.1",
+        "--web-port",
+        "8080"
+      ]
+    },
+    {
+      "name": "MUVE Web Server (8080)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "web-server",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--web-hostname",
+        "127.0.0.1",
+        "--web-port",
+        "8080"
+      ]
+    },
+    {
+      "name": "MUVE Windows",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "windows",
+      "program": "lib/main.dart",
+      "toolArgs": []
+    },
+    {
+      "name": "MUVE Android Emulator",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": []
+    }
+  ]
 }
