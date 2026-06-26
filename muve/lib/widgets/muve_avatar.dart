@@ -30,11 +30,14 @@ class MuveAvatar extends StatelessWidget {
   }
 
   String _initials(String name) {
-    final parts = name.trim().split(' ');
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) return '?';
+
+    final parts = cleanName.split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
+    return cleanName.substring(0, cleanName.length >= 2 ? 2 : 1).toUpperCase();
   }
 
   @override

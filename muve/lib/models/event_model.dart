@@ -86,21 +86,84 @@ class EventModel {
         'criadoEm': criadoEm.toIso8601String(),
       };
 
-  factory EventModel.fromMap(Map<String, dynamic> map) => EventModel(
-        id: map['id'] as String,
-        titulo: map['titulo'] as String,
-        descricao: map['descricao'] as String?,
-        local: map['local'] as String,
-        cidade: map['cidade'] as String,
-        estado: map['estado'] as String,
-        data: DateTime.parse(map['data'] as String),
-        generos: List<String>.from(map['generos'] ?? []),
-        cacheEstimado: map['cacheEstimado'] as String?,
-        contratando: map['contratando'] as bool? ?? false,
-        criadorId: map['criadorId'] as String,
-        criadorNome: map['criadorNome'] as String,
-        criadorFoto: map['criadorFoto'] as String?,
-        emDestaque: map['emDestaque'] as bool? ?? false,
-        criadoEm: DateTime.parse(map['criadoEm'] as String),
-      );
+  Map<String, dynamic> toApiMap() => {
+        'titulo': titulo,
+        'descricao': descricao,
+        'local': local,
+        'cidade': cidade,
+        'estado': estado,
+        'data':
+            '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}',
+        'hora':
+            '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}',
+        'categoria': generos.isNotEmpty ? generos.first : null,
+        'cacheEstimado': cacheEstimado,
+        'contratando': contratando,
+      };
+
+  factory EventModel.fromMap(Map<String, dynamic> map) {
+    final categoria = map['categoria'];
+    final rawGeneros = map['generos'];
+    final generos = rawGeneros is List
+        ? List<String>.from(rawGeneros)
+        : [
+            if (categoria is String && categoria.isNotEmpty) categoria,
+          ];
+
+    final contratante = map['contratante'];
+    final contratanteMap =
+        contratante is Map ? Map<String, dynamic>.from(contratante) : null;
+
+    return EventModel(
+      id: (map['id'] ?? '').toString(),
+      titulo: (map['titulo'] ?? map['title'] ?? '') as String,
+      descricao: map['descricao'] as String?,
+      local: map['local'] as String? ?? '',
+      cidade: map['cidade'] as String? ?? '',
+      estado: map['estado'] as String? ?? '',
+      data: _parseEventDate(map['data'], map['hora']),
+      generos: generos,
+      cacheEstimado: map['cacheEstimado'] as String?,
+      contratando: map['contratando'] as bool? ?? true,
+      criadorId: (map['criadorId'] ??
+              map['contratanteId'] ??
+              contratanteMap?['id'] ??
+              '')
+          .toString(),
+      criadorNome:
+          (map['criadorNome'] ?? contratanteMap?['nome'] ?? 'Contratante')
+              .toString(),
+      criadorFoto: map['criadorFoto'] as String?,
+      emDestaque: map['emDestaque'] as bool? ?? false,
+      criadoEm: DateTime.tryParse(
+            (map['criadoEm'] ?? map['createdAt'] ?? '').toString(),
+          ) ??
+          DateTime.now(),
+    );
+  }
+
+  static DateTime _parseEventDate(dynamic rawDate, dynamic rawTime) {
+    final dateText = rawDate?.toString();
+    final timeText = rawTime?.toString();
+
+    if (dateText == null || dateText.isEmpty) {
+      return DateTime.now();
+    }
+
+    final iso = DateTime.tryParse(dateText);
+    if (iso != null) return iso;
+
+    final parts = dateText.split('/');
+    if (parts.length == 3) {
+      final day = int.tryParse(parts[0]) ?? 1;
+      final month = int.tryParse(parts[1]) ?? 1;
+      final year = int.tryParse(parts[2]) ?? DateTime.now().year;
+      final timeParts = (timeText ?? '00:00').split(':');
+      final hour = timeParts.isNotEmpty ? int.tryParse(timeParts[0]) ?? 0 : 0;
+      final minute = timeParts.length > 1 ? int.tryParse(timeParts[1]) ?? 0 : 0;
+      return DateTime(year, month, day, hour, minute);
+    }
+
+    return DateTime.now();
+  }
 }

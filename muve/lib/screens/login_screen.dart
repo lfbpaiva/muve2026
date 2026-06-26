@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.white,
                           fontSize: 34,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
+                          letterSpacing: 0,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -190,29 +190,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 10),
-
-                          // Esqueceu a senha
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () =>
-                                  _showError('Recuperação de senha em breve'),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: const Text(
-                                'Esqueceu a senha?',
-                                style: TextStyle(
-                                  color: AppTheme.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
                           const SizedBox(height: 24),
 
                           // Botão Entrar
@@ -234,25 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-
-                          // Divisor "ou continue com"
-                          const _OrDivider(),
-                          const SizedBox(height: 16),
-
-                          // Botão Google
-                          _SocialButton(
-                            label: 'Entrar com Google',
-                            icon: _GoogleIcon(),
-                            onTap: () =>
-                                _showError('Login social em breve'),
-                          ),
-                          const SizedBox(height: 12),
-
-                          const SizedBox(height: 24),
-
-                          // Dica de demonstração
-                          _DemoTip(),
-                          const SizedBox(height: 20),
 
                           // Link criar conta
                           Row(
@@ -309,151 +267,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'ou continue com',
-            style: TextStyle(
-              color: AppTheme.textLight,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
-      ],
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  final String label;
-  final Widget icon;
-  final VoidCallback onTap;
-
-  const _SocialButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppTheme.textDark,
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            icon,
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textDark,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GoogleIcon extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 20,
-      height: 20,
-      alignment: Alignment.center,
-      child: RichText(
-        text: const TextSpan(
-          children: [
-            TextSpan(
-                text: 'G',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: Color(0xFF4285F4),
-                )),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DemoTip extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '🎵  Contas de demonstração',
-            style: TextStyle(
-              color: AppTheme.primary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _demoRow('artista@muve.com', '123456'),
-          const SizedBox(height: 4),
-          _demoRow('contratante@muve.com', '123456'),
-          const SizedBox(height: 4),
-          _demoRow('ambos@muve.com', '123456'),
-        ],
-      ),
-    );
-  }
-
-  Widget _demoRow(String email, String pass) {
-    return Row(
-      children: [
-        Text(email,
-            style: const TextStyle(
-                color: AppTheme.textMedium,
-                fontSize: 11,
-                fontFamily: 'monospace')),
-        const Text('  ·  ',
-            style: TextStyle(color: AppTheme.textLight, fontSize: 11)),
-        Text(pass,
-            style: const TextStyle(
-                color: AppTheme.textMedium,
-                fontSize: 11,
-                fontFamily: 'monospace')),
-      ],
     );
   }
 }

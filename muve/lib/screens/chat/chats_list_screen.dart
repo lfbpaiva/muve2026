@@ -5,6 +5,7 @@ import '../../routes.dart';
 import '../../services/auth_service.dart';
 import '../../services/chat_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/muve_feedback.dart';
 import '../../widgets/muve_avatar.dart';
 
 class ChatsListScreen extends StatefulWidget {
@@ -55,25 +56,27 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                   ),
                   Text(
                     'Suas conversas com artistas e contratantes',
-                    style: TextStyle(
-                        color: AppTheme.textMedium, fontSize: 13),
+                    style: TextStyle(color: AppTheme.textMedium, fontSize: 13),
                   ),
                 ],
               ),
             ),
             Expanded(
               child: _rooms.isEmpty
-                  ? const _EmptyState()
+                  ? const MuveEmptyState(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      title: 'Nenhuma conversa ainda',
+                      message:
+                          'Abra o perfil de um artista para iniciar uma negociação.',
+                    )
                   : ListView.separated(
-                      padding:
-                          const EdgeInsets.fromLTRB(0, 0, 0, 80),
+                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 80),
                       itemCount: _rooms.length,
-                      separatorBuilder: (_, __) => const Divider(
-                          color: Color(0xFFF3F4F6), height: 1),
+                      separatorBuilder: (_, __) =>
+                          const Divider(color: Color(0xFFF3F4F6), height: 1),
                       itemBuilder: (context, i) {
                         final room = _rooms[i];
-                        final myUid =
-                            AuthService.currentUser!.uid;
+                        final myUid = AuthService.currentUser!.uid;
                         return _ChatTile(
                           room: room,
                           myUid: myUid,
@@ -115,16 +118,14 @@ class _ChatTile extends StatelessWidget {
       onTap: onTap,
       splashColor: AppTheme.primary.withValues(alpha: 0.05),
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
           children: [
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.2),
-                    width: 2),
+                    color: AppTheme.primary.withValues(alpha: 0.2), width: 2),
               ),
               child: MuveAvatar(name: otherName, radius: 24),
             ),
@@ -183,49 +184,5 @@ class _ChatTile extends StatelessWidget {
     } else {
       return DateFormat('dd/MM').format(dt);
     }
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.chat_bubble_outline_rounded,
-              size: 36,
-              color: AppTheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Nenhuma conversa ainda',
-            style: TextStyle(
-              color: AppTheme.textDark,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Encontre artistas e inicie uma negociação',
-            style:
-                TextStyle(color: AppTheme.textMedium, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
   }
 }

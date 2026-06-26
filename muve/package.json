@@ -1,0 +1,11 @@
+{
+  "name": "muve-flutter",
+  "private": true,
+  "scripts": {
+    "web": "run_web_chrome.bat",
+    "web:server": "flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080",
+    "web:chrome": "flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080",
+    "android": "flutter run",
+    "windows": "flutter run -d windows"
+  }
+}

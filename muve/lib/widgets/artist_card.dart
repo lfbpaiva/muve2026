@@ -131,8 +131,7 @@ class ArtistCard extends StatelessWidget {
                             color: AppTheme.primary.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color:
-                                    AppTheme.primary.withValues(alpha: 0.2)),
+                                color: AppTheme.primary.withValues(alpha: 0.2)),
                           ),
                           child: Text(
                             g,

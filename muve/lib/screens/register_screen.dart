@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animate_do/animate_do.dart';
+import '../constants/music_genres.dart';
 import '../routes.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-
-const _allGenres = [
-  'Sertanejo', 'Rock', 'Pagode', 'MPB', 'Eletrônica',
-  'Indie', 'Jazz', 'Funk', 'Gospel', 'Pop', 'Hip-Hop', 'Forró',
-  'Bossa Nova', 'Samba', 'Blues', 'House', 'Reggae',
-];
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -57,8 +52,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final cidade = _cidadeCtrl.text.trim();
     final estado = _estadoCtrl.text.trim();
 
-    if (nome.isEmpty || email.isEmpty || senha.isEmpty ||
-        cidade.isEmpty || estado.isEmpty) {
+    if (nome.isEmpty ||
+        email.isEmpty ||
+        senha.isEmpty ||
+        cidade.isEmpty ||
+        estado.isEmpty) {
       _showError('Preencha todos os campos obrigatórios');
       return;
     }
@@ -97,9 +95,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       cidade: cidade,
       estado: estado,
       papeis: _papeis.toList(),
-      telefone: _telefoneCtrl.text.trim().isEmpty
-          ? null
-          : _telefoneCtrl.text.trim(),
+      telefone:
+          _telefoneCtrl.text.trim().isEmpty ? null : _telefoneCtrl.text.trim(),
       cpf: _hasArtista ? _cpfCtrl.text.trim() : null,
       cnpj: _hasContratante ? _cnpjCtrl.text.trim() : null,
       generos: _generosSelecionados.toList(),
@@ -166,7 +163,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(alpha: 0.1),
+                                  color:
+                                      AppTheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
@@ -439,9 +437,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: _allGenres.map((g) {
-                            final isSelected =
-                                _generosSelecionados.contains(g);
+                          children: musicGenres.map((g) {
+                            final isSelected = _generosSelecionados.contains(g);
                             return GestureDetector(
                               onTap: () => setState(() {
                                 if (isSelected) {
@@ -520,8 +517,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           style: TextButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -564,10 +560,8 @@ class _CpfInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final digits =
-        newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-    final limited =
-        digits.length > 11 ? digits.substring(0, 11) : digits;
+    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    final limited = digits.length > 11 ? digits.substring(0, 11) : digits;
 
     final buf = StringBuffer();
     for (int i = 0; i < limited.length; i++) {
@@ -590,10 +584,8 @@ class _CnpjInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final digits =
-        newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-    final limited =
-        digits.length > 14 ? digits.substring(0, 14) : digits;
+    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    final limited = digits.length > 14 ? digits.substring(0, 14) : digits;
 
     final buf = StringBuffer();
     for (int i = 0; i < limited.length; i++) {
@@ -705,8 +697,7 @@ class _RoleCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: selected ? AppTheme.primary : Colors.transparent,
                 border: Border.all(
-                  color:
-                      selected ? AppTheme.primary : const Color(0xFFD1D5DB),
+                  color: selected ? AppTheme.primary : const Color(0xFFD1D5DB),
                   width: 2,
                 ),
               ),
